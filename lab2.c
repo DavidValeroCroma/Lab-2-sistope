@@ -7,6 +7,37 @@
 #include <sys/wait.h>
 
 
+/*
+entrada:
+salida:
+Esta funcion/rutina realiza el procesamiento de los datos de entrada 
+mediando el acceso a secciones criticas por parte de las hebras 
+*/
+void * thread_rutine(){
+
+}
+
+/*
+entrada:
+salida:
+Esta funcion corresponde a la escritura de los resultados en un archivo .out 
+el cual contendra estos ordenados por anillo
+*/
+void * escrituraDeArchivo(){
+
+}
+
+/*
+entrada:
+salida:
+Esta funcion corresponde a la lectura del archivo propiedades.csv, el cual contiene 
+las propiedades de las muestras tomadas
+*/
+void * lecturaDeArchivo(){
+
+}
+
+
 FILE * flujo;
 
 int main(int argc, char** argv){
