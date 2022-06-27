@@ -102,6 +102,10 @@ int main(int argc, char** argv){
         }
     }
 
+    for (int j = 0; j < cant_hebras ; ++j)
+    {
+        pthread_join(thread[j], NULL);
+    }
 
     //------------------------ Esperar a que terminen las threads ------------------
 
