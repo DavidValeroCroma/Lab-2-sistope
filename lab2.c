@@ -88,6 +88,21 @@ int main(int argc, char** argv){
         }
     }
 
+    //---------------------------- Apertura del archivo ----------------------------
+
+    //----------------------- creacion y declaracion de threads --------------------
+    pthread_t thread[cant_hebras];
+    for (int i = 0; i < cant_hebras; ++i)
+    {
+        if (0 != pthread_create(&thread[i], NULL, lectura_rutine, NULL))
+        {
+            printf("la hebra %d no se pudo ejecutar correctamente", i);
+        }
+    }
+
+    //----------------------------- lectura del archivo ----------------------------
+
+    //------------------------ Esperar a que terminen las threads ------------------
 
     return 0;
 }
