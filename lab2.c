@@ -124,10 +124,19 @@ int main(int argc, char** argv){
     flujo = fopen(archivo_entrada, "r");
 
     //----------------------- creacion y declaracion de threads --------------------
+    
+    //inicialización de atributos
+    pthread_attr_t attr[cant_hebras];
+    for (int i = 0; i < count; i++)
+    {
+        pthread_attr_init(&attr[i]);
+    }
+    
+    //creación de hebras
     pthread_t thread[cant_hebras];
     for (int i = 0; i < cant_hebras; ++i)
     {
-        if (0 != pthread_create(&thread[i], NULL, thread_rutine, NULL))
+        if (0 != pthread_create(&thread[i], &attr[i], thread_rutine, NULL))
         {
             printf("la hebra %d no se pudo ejecutar correctamente", i);
         }
