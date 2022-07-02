@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
+#include <pthread.h>
 #include <sys/types.h>
 #include <sys/wait.h>
 
@@ -39,7 +40,7 @@ void * lecturaDeArchivo(){
 
 
 FILE * flujo;
-
+pthread_mutex_t **MUTEX;
 int main(int argc, char** argv){
     
 
@@ -127,11 +128,25 @@ int main(int argc, char** argv){
     
     //inicialización de atributos
     pthread_attr_t attr[cant_hebras];
-    for (int i = 0; i < count; i++)
+    for (int i = 0; i < cant_hebras; i++)
     {
         pthread_attr_init(&attr[i]);
     }
-    
+    //Reserva de memoria mutex
+    MUTEX = (pthread_mutex_t**)malloc(sizeof(pthread_mutex_t*)*cant_hebras);
+    for (int i = 0; i < cant_hebras; i++)
+    {
+        MUTEX[i] = (pthread_mutex_t*)malloc(sizeof(pthread_mutex_t)*2);
+    }
+    //Inicialización de mutex
+    for (int i = 0; i < cant_hebras; i++)
+    {
+        for (int j = 0; j < 2; j++)
+        {
+            pthread_mutex_init(&MUTEX[i][j], NULL);
+        }
+        
+    }
     //creación de hebras
     pthread_t thread[cant_hebras];
     for (int i = 0; i < cant_hebras; ++i)
