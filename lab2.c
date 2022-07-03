@@ -123,6 +123,9 @@ void * thread_rutine(void *unused){
                     printf("Soy la visibilidad %d\n Distancia: %LF \n Disco: %d\n", contador, distancia, disco);
                     printf("%Lf,%Lf,%Lf,%Lf,%Lf\n\n\n", auxVis.u, auxVis.v, auxVis.real, auxVis.img, auxVis.ruido);
                     
+                    //escritura de archivos
+                    // que nos falta
+                    // inicializar el arreglo de struct que contendra la información de cada disco
                 }
                 else{
                     leido = 1;
@@ -247,7 +250,10 @@ int main(int argc, char** argv){
     }
     printf("--------FIN-------------\n");
     
+    //escritura de archivo 
 
+
+    
     //destroy mutex
     pthread_mutex_destroy(&mutexLectura);
     pthread_mutex_destroy(&mutexEscritura);
