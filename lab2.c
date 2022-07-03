@@ -6,18 +6,25 @@
 #include <pthread.h>
 #include <sys/types.h>
 #include <sys/wait.h>
+#define LECTURA 0
+#define ESCRITURA 1
 
+typedef struct visibilidad
+{
+    long double u;
+    long double v;
+    long double real;
+    long double img;
+    long double ruido;
+} vis;
 
-/*
-entrada:
-salida:
-Esta funcion/rutina realiza el procesamiento de los datos de entrada 
-mediando el acceso a secciones criticas por parte de las hebras 
-*/
-void * thread_rutine(){
-
-}
-
+FILE * flujo;
+pthread_mutex_t mutexLectura;
+pthread_mutex_t mutexEscritura;
+int ancho_disco, cant_discos, chunk;
+int contador = 0; //cuenta visibilidades
+int contadorH = 0; //cuenta hebras
+int leido = 0;
 /*
 entrada:
 salida:
@@ -37,12 +44,97 @@ las propiedades de las muestras tomadas
 void * lecturaDeArchivo(){
 
 }
+/*
+entrada:
+salida:
+Función que devuelve el identificador del disco al que pertence la distancia entrante 
+*/
+int hashDisk(int ancho_disco, int cant_discos, long double distancia){
 
-
-FILE * flujo;
-pthread_mutex_t **MUTEX;
-int main(int argc, char** argv){
+    int limInf = 0;
+    int limSup = ancho_disco;
+    for (int i = 0; i < cant_discos; i++)
+    {
+        if (i == 0)
+        {
+            if (distancia >= limInf && distancia < limSup  )
+            {
+                return i+1;
+            }            
+            else{
+                limInf = ancho_disco;
+                limSup = limSup + ancho_disco;
+            }
+        }
+        else if(i == cant_discos-1){
+            if (distancia >= limInf)
+            {
+                return i+1;
+            }
+            
+        }
+        else{
+            if (distancia >= limInf && distancia < limSup)
+            {
+                return i+1;
+            }
+            else{
+                limInf = limInf + ancho_disco;
+                limSup = limSup + ancho_disco;
+            }
+            
+        }
+        
+    }
+    return -1;
     
+}
+/*
+entrada:
+salida:
+Esta funcion/rutina realiza el procesamiento de los datos de entrada 
+mediando el acceso a secciones criticas por parte de las hebras 
+*/
+void * thread_rutine(void *unused){
+
+    if (!feof(flujo) && leido == 0) //revisamos que no llegamos al final del archivo
+    {
+        pthread_mutex_lock(&mutexLectura);
+        printf("----- Soy la hebra %d ----- \n", contadorH);
+        for (int i = 0; i < chunk; i++)
+        {
+            //lectura de visibilidad
+            vis auxVis;
+            fscanf(flujo, "%Lf,%Lf,%Lf,%Lf,%Lf", &auxVis.u, &auxVis.v, &auxVis.real, &auxVis.img, &auxVis.ruido);
+            contador = contador + 1;
+            
+            //Calculo de distancia de la visibilidad
+            long double distancia =  sqrt((auxVis.real * auxVis.real) + (auxVis.img * auxVis.img));
+
+            //asignación de disco
+            int disco = hashDisk(ancho_disco, cant_discos, distancia);
+            
+            //Print de control
+            printf("Soy la visibilidad %d\n Distancia: %LF \n Disco: %d\n", contador, distancia, disco);
+            printf("%Lf,%Lf,%Lf,%Lf,%Lf\n\n\n", auxVis.u, auxVis.v, auxVis.real, auxVis.img, auxVis.ruido);
+            
+            
+        }
+        pthread_mutex_lock(&mutexLectura);
+        contadorH = contadorH + 1;
+        
+    }
+    else{
+        pthread_exit(NULL);
+        leido = 1;
+        
+    }
+    pthread_exit(NULL);
+    return NULL;
+}
+
+
+int main(int argc, char** argv){   
 
     /*
     $ ./lab2 -i visibilidades.csv -o propiedades.txt -d ancho -n ndiscos -h numerohebras -c chunk -b
@@ -59,7 +151,7 @@ int main(int argc, char** argv){
     //-----------------------------------------------------------------getopt
     char archivo_entrada[100];
     char archivo_salida[100];
-    int ancho_disco, cant_discos,variable_control, cant_hebras, chunk = 0;
+    int variable_control, cant_hebras;
     int c;
     while((c = getopt(argc, argv, "i:o:n:d:h:c:b")) != -1){
         switch(c)
@@ -124,44 +216,36 @@ int main(int argc, char** argv){
 
     flujo = fopen(archivo_entrada, "r");
 
-    //----------------------- creacion y declaracion de threads --------------------
-    
+    //----------------------- creacion y declaracion de threads --------------------    
     //inicialización de atributos
     pthread_attr_t attr[cant_hebras];
     for (int i = 0; i < cant_hebras; i++)
     {
         pthread_attr_init(&attr[i]);
     }
-    //Reserva de memoria mutex
-    MUTEX = (pthread_mutex_t**)malloc(sizeof(pthread_mutex_t*)*cant_hebras);
-    for (int i = 0; i < cant_hebras; i++)
-    {
-        MUTEX[i] = (pthread_mutex_t*)malloc(sizeof(pthread_mutex_t)*2);
-    }
-    //Inicialización de mutex
-    for (int i = 0; i < cant_hebras; i++)
-    {
-        for (int j = 0; j < 2; j++)
-        {
-            pthread_mutex_init(&MUTEX[i][j], NULL);
-        }
-        
-    }
+
+    //Inicialización de mutex    
+    pthread_mutex_init(&mutexLectura, NULL);
+    pthread_mutex_init(&mutexEscritura, NULL);
+   
     //creación de hebras
     pthread_t thread[cant_hebras];
     for (int i = 0; i < cant_hebras; ++i)
     {
-        if (0 != pthread_create(&thread[i], &attr[i], thread_rutine, NULL))
+        if (leido == 1)
         {
-            printf("la hebra %d no se pudo ejecutar correctamente", i);
+            break;
         }
+        
+        pthread_create(&thread[i], &attr[i], thread_rutine, NULL);        
+        pthread_join(thread[i], NULL);
     }
+    printf("--------FIN-------------\n");
+    
 
-    for (int j = 0; j < cant_hebras ; ++j)
-    {
-        pthread_join(thread[j], NULL);
-    }
-
+    //destroy mutex
+    pthread_mutex_destroy(&mutexLectura);
+    pthread_mutex_destroy(&mutexEscritura);
     //------------------------ Esperar a que terminen las threads ------------------
 
     return 0;
