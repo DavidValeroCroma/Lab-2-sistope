@@ -298,19 +298,28 @@ int main(int argc, char** argv){
     pthread_mutex_init(&mutexLectura, NULL);
     pthread_mutex_init(&mutexEscritura, NULL);
    
-    
+
+    pthread_attr_t attr[cant_hebras];
+    for (int i = 0; i < cant_hebras; i++)
+    {
+        pthread_attr_init(&attr[i]);
+    }
+    //creación de hebras
+    pthread_t thread[cant_hebras];
+
+
     for (int i = 0; i < cant_hebras; ++i)
     {    
-        //inicialización de atributos
-        pthread_attr_t attr;
-        pthread_attr_init(&attr);
-        //creación de hebras
-        pthread_t thread;
-        pthread_create(&thread, &attr, thread_rutine, NULL);        
-        pthread_join(thread, NULL); 
+        pthread_create(&thread[i], &attr[i], thread_rutine, NULL);        
         contadorH++;
     }
+    
+    for (int j = 0; j < cant_hebras ; ++j)
+    {
+        pthread_join(thread[j], NULL);
+    }
     printf("--------FIN-------------\n");
+    
     fclose(flujo);
     //escritura de archivo 
 
