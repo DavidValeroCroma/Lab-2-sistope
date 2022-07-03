@@ -96,41 +96,50 @@ Esta funcion/rutina realiza el procesamiento de los datos de entrada
 mediando el acceso a secciones criticas por parte de las hebras 
 */
 void * thread_rutine(void *unused){
-
-    if (!feof(flujo) && leido == 0) //revisamos que no llegamos al final del archivo
+    int chunkLeido = 0;
+    if (!feof(flujo)) //revisamos que no llegamos al final del archivo
     {
         pthread_mutex_lock(&mutexLectura);
         printf("----- Soy la hebra %d ----- \n", contadorH);
-        for (int i = 0; i < chunk; i++)
-        {
-            //lectura de visibilidad
-            vis auxVis;
-            fscanf(flujo, "%Lf,%Lf,%Lf,%Lf,%Lf", &auxVis.u, &auxVis.v, &auxVis.real, &auxVis.img, &auxVis.ruido);
-            contador = contador + 1;
-            
-            //Calculo de distancia de la visibilidad
-            long double distancia =  sqrt((auxVis.real * auxVis.real) + (auxVis.img * auxVis.img));
+        
+        while(leido != 1 && chunkLeido < chunk){
 
-            //asignación de disco
-            int disco = hashDisk(ancho_disco, cant_discos, distancia);
-            
-            //Print de control
-            printf("Soy la visibilidad %d\n Distancia: %LF \n Disco: %d\n", contador, distancia, disco);
-            printf("%Lf,%Lf,%Lf,%Lf,%Lf\n\n\n", auxVis.u, auxVis.v, auxVis.real, auxVis.img, auxVis.ruido);
-            
-            
-        }
-        pthread_mutex_lock(&mutexLectura);
-        contadorH = contadorH + 1;
+            if (leido == 0)
+            {
+                //lectura de visibilidad
+                vis auxVis;
+                if(fscanf(flujo, "%Lf,%Lf,%Lf,%Lf,%Lf", &auxVis.u, &auxVis.v, &auxVis.real, &auxVis.img, &auxVis.ruido)){
+                    
+                    
+                    //Calculo de distancia de la visibilidad
+                    long double distancia =  sqrt((auxVis.real * auxVis.real) + (auxVis.img * auxVis.img));
+
+                    //asignación de disco
+                    int disco = hashDisk(ancho_disco, cant_discos, distancia);
+                    
+                    //Print de control
+                    printf("Soy la visibilidad %d\n Distancia: %LF \n Disco: %d\n", contador, distancia, disco);
+                    printf("%Lf,%Lf,%Lf,%Lf,%Lf\n\n\n", auxVis.u, auxVis.v, auxVis.real, auxVis.img, auxVis.ruido);
+                    
+                }
+                else{
+                    leido = 1;
+                }
+                
+            }            
+            //------
+            contador = contador + 1;
+            chunkLeido++;
+        }    
+        pthread_mutex_unlock(&mutexLectura);
+        thread_rutine(NULL);   
         
     }
     else{
         pthread_exit(NULL);
-        leido = 1;
         
     }
     pthread_exit(NULL);
-    return NULL;
 }
 
 
@@ -217,28 +226,23 @@ int main(int argc, char** argv){
     flujo = fopen(archivo_entrada, "r");
 
     //----------------------- creacion y declaracion de threads --------------------    
-    //inicialización de atributos
-    pthread_attr_t attr[cant_hebras];
-    for (int i = 0; i < cant_hebras; i++)
-    {
-        pthread_attr_init(&attr[i]);
-    }
+    
+    
 
     //Inicialización de mutex    
     pthread_mutex_init(&mutexLectura, NULL);
     pthread_mutex_init(&mutexEscritura, NULL);
    
-    //creación de hebras
-    pthread_t thread[cant_hebras];
+    
     for (int i = 0; i < cant_hebras; ++i)
-    {
-        if (leido == 1)
-        {
-            break;
-        }
-        
-        pthread_create(&thread[i], &attr[i], thread_rutine, NULL);        
-        pthread_join(thread[i], NULL);
+    {    
+        //inicialización de atributos
+        pthread_attr_t attr;
+        pthread_attr_init(&attr);
+        //creación de hebras
+        pthread_t thread;
+        pthread_create(&thread, &attr, thread_rutine, NULL);        
+        pthread_join(thread, NULL); 
     }
     printf("--------FIN-------------\n");
     
