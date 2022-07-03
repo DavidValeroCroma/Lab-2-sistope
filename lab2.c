@@ -96,13 +96,13 @@ Esta funcion/rutina realiza el procesamiento de los datos de entrada
 mediando el acceso a secciones criticas por parte de las hebras 
 */
 void * thread_rutine(void *unused){
-    int chunkLeido = 0;
+    
     if (!feof(flujo)) //revisamos que no llegamos al final del archivo
     {
         pthread_mutex_lock(&mutexLectura);
         printf("----- Soy la hebra %d ----- \n", contadorH);
-        
-        while(leido != 1 && chunkLeido < chunk){
+        int chunkLeido = 0;
+        while(leido != 1 && chunkLeido < chunk && !feof(flujo)){
 
             if (leido == 0)
             {
@@ -117,6 +117,8 @@ void * thread_rutine(void *unused){
                     //asignación de disco
                     int disco = hashDisk(ancho_disco, cant_discos, distancia);
                     
+                    chunkLeido++;
+                    contador++;
                     //Print de control
                     printf("Soy la visibilidad %d\n Distancia: %LF \n Disco: %d\n", contador, distancia, disco);
                     printf("%Lf,%Lf,%Lf,%Lf,%Lf\n\n\n", auxVis.u, auxVis.v, auxVis.real, auxVis.img, auxVis.ruido);
@@ -126,10 +128,8 @@ void * thread_rutine(void *unused){
                     leido = 1;
                 }
                 
-            }            
-            //------
-            contador = contador + 1;
-            chunkLeido++;
+            }             
+            
         }    
         pthread_mutex_unlock(&mutexLectura);
         thread_rutine(NULL);   
@@ -243,6 +243,7 @@ int main(int argc, char** argv){
         pthread_t thread;
         pthread_create(&thread, &attr, thread_rutine, NULL);        
         pthread_join(thread, NULL); 
+        contadorH++;
     }
     printf("--------FIN-------------\n");
     
