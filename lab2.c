@@ -25,6 +25,7 @@ typedef struct Disco
     long double real;
     long double img;
     long double ruido;
+    long double potencia;
     int contadorVis;
 } Disk;
 
@@ -144,6 +145,7 @@ void * thread_rutine(void *unused){
                     Discos[discoID].real = Discos[discoID].real + auxVis.real;
                     Discos[discoID].img = Discos[discoID].img + auxVis.img;
                     Discos[discoID].ruido = Discos[discoID].ruido + auxVis.ruido;
+                    Discos[discoID].potencia = Discos[discoID].potencia + (auxVis.real*auxVis.real) + (auxVis.img*auxVis.img);
                     Discos[discoID].contadorVis = Discos[discoID].contadorVis + 1;
 
                     printf("Actualizar Disco %d\n", discoID);
@@ -167,6 +169,31 @@ void * thread_rutine(void *unused){
         
     }
     pthread_exit(NULL);
+}
+
+
+    /*
+entrada: string con el nombre del archivo a crear, matriz con los resultados de los calculos, numero de discos / hijos
+salida: archivo .txt con los resultados impresos
+funcion que imprime los resultados de los procesos hijos en un archivo .txt
+*/
+void escribirArchivoSalida(char* archivo_salida){
+    FILE* a= fopen(archivo_salida,"w");
+    for (int i = 0; i < cant_discos; ++i){
+
+        long double mediaReal = Discos[i].real/Discos[i].contadorVis;
+        long double mediaImg = Discos[i].img/Discos[i].contadorVis;
+        long double potencia = sqrt(Discos[i].potencia);
+        fprintf(a, "Disco %d:\n", i+1);
+        fprintf(a, "Media Real: %Lf\n",mediaReal);
+        fprintf(a, "Media imaginaria: %Lf\n",mediaImg);
+        fprintf(a, "Potencia: %Lf\n",potencia);
+        fprintf(a, "Ruido total: %Lf\n",Discos[i].ruido);
+        
+        
+    }
+
+    fclose(a);
 }
 
 
@@ -263,6 +290,7 @@ int main(int argc, char** argv){
         Discos[i].real = 0;
         Discos[i].img = 0;
         Discos[i].ruido = 0;
+        Discos[i].potencia = 0;
         Discos[i].contadorVis = 0;
     }
     
@@ -283,10 +311,27 @@ int main(int argc, char** argv){
         contadorH++;
     }
     printf("--------FIN-------------\n");
-    
+    fclose(flujo);
     //escritura de archivo 
 
+    escribirArchivoSalida(archivo_salida);
+    if (variable_control == 1)
+    {
+        for (int i = 0; i < cant_discos; ++i){
 
+            long double mediaReal = Discos[i].real/Discos[i].contadorVis;
+            long double mediaImg = Discos[i].img/Discos[i].contadorVis;
+            long double potencia = sqrt(Discos[i].potencia);
+            printf("Disco %d:\n", i+1);
+            printf("Media Real: %Lf\n",mediaReal);
+            printf("Media imaginaria: %Lf\n",mediaImg);
+            printf("Potencia: %Lf\n",potencia);
+            printf("Ruido total: %Lf\n",Discos[i].ruido);
+            
+            
+        }
+    }
+    
 
     //destroy mutex
     pthread_mutex_destroy(&mutexLectura);
