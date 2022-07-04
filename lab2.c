@@ -23,10 +23,11 @@ Disk* Discos;
 
 
 /*
-entrada:
-salida:
-Esta funcion/rutina realiza el procesamiento de los datos de entrada 
-mediando el acceso a secciones criticas por parte de las hebras 
+entrada: parametros declarados globalmente
+salida: propiedades de los discos agregados a la lista de struct Disk llamada Discos
+Esta funcion/rutina realiza el procesamiento de los datos de entrada mediando el acceso
+a secciones criticas por parte de las hebras, calculando y actualizando los datos 
+de los discos
 */
 void * thread_rutine(void *unused){
     
@@ -34,18 +35,24 @@ void * thread_rutine(void *unused){
     {
         
         int chunkLeido = 0;
+        pthread_mutex_lock(&mutexLectura);
         while(leido != 1 && chunkLeido < chunk && !feof(flujo)){
 
             if (leido == 0)
             {
-                //lectura de visibilidad
+                //lectura de visibilidad 
                 vis auxVis;
-                pthread_mutex_lock(&mutexLectura);
-                printf("----- Soy la hebra %d ----- \n", contadorH);
+
+                //----------------------------------------- Inicio Lectura -----------------------------------------
+
+
+                //printf("----- Soy la hebra %d ----- \n", contadorH);
                 if(fscanf(flujo, "%Lf,%Lf,%Lf,%Lf,%Lf", &auxVis.u, &auxVis.v, &auxVis.real, &auxVis.img, &auxVis.ruido)){
                     
-                    pthread_mutex_unlock(&mutexLectura); // se da el unlock al mutex de lectura en caso de haber sido exitosa la lectura
                     
+                    
+
+                    //------------------------------- Inicio Calculo de la distancia de la vis ----------------------------
                     //Calculo de distancia de la visibilidad
                     long double distancia =  sqrt((auxVis.u * auxVis.u) + (auxVis.v* auxVis.v));
 
@@ -54,36 +61,41 @@ void * thread_rutine(void *unused){
                     
                     chunkLeido++;
                     contador++;
-                    //Print de control
-                    printf("Soy la visibilidad %d\n Distancia: %LF \n Disco: %d\n", contador+1, distancia, discoID);
-                    printf("%Lf,%Lf,%Lf,%Lf,%Lf\n\n\n", auxVis.u, auxVis.v, auxVis.real, auxVis.img, auxVis.ruido);
                     
-                    //escritura de archivos
-                    // que nos falta
-                    // inicializar el arreglo de struct que contendra la información de cada disco
-                    // ------------------------ ACTUALIZAR PROPIEDADES ------------------------------
-                    pthread_mutex_lock(&mutexEscritura);
+                    
+
+                    // ------------------------ INICIO DE ACTUALIZAR PROPIEDADES ------------------------------
+
+                    // hacemos el lock del mutex de escritura
+
+                    pthread_mutex_lock(&mutexEscritura); 
+
                     Discos[discoID].u = Discos[discoID].u + auxVis.u;
                     Discos[discoID].v = Discos[discoID].v + auxVis.v;
                     Discos[discoID].real = Discos[discoID].real + auxVis.real;
                     Discos[discoID].img = Discos[discoID].img + auxVis.img;
                     Discos[discoID].ruido = Discos[discoID].ruido + auxVis.ruido;
-                    Discos[discoID].potencia = Discos[discoID].potencia + (auxVis.real*auxVis.real) + (auxVis.img*auxVis.img);
+                    Discos[discoID].potencia = Discos[discoID].potencia + sqrt((auxVis.real*auxVis.real) + (auxVis.img*auxVis.img));
                     Discos[discoID].contadorVis = Discos[discoID].contadorVis + 1;
 
-                    printf("Actualizar Disco %d\n", discoID);
-                    printf("%Lf,%Lf,%Lf,%Lf,%Lf\n Cant: %d\n\n", Discos[discoID].u, Discos[discoID].v, Discos[discoID].real, Discos[discoID].img, Discos[discoID].ruido,Discos[discoID].contadorVis);
                     
-                    pthread_mutex_unlock(&mutexEscritura);
+                    // hacemos unlock de el mutex de escritura
+                    pthread_mutex_unlock(&mutexEscritura); 
+                    
+                    // ------------------------ FIN DE ACTUALIZAR PROPIEDADES ------------------------------
+
                 }
                 else{
-                    pthread_mutex_unlock(&mutexLectura); // se da el unlock al mutex de lectura en caso de haber fallado la lectura evitando deathlock
+                    // se da el unlock al mutex de lectura en caso de haber fallado la lectura evitando deathlock
+                    
                     leido = 1;
+
                 }
                 
             }             
             
         }    
+        pthread_mutex_unlock(&mutexLectura); 
         
         thread_rutine(NULL);   
         
@@ -111,6 +123,8 @@ int main(int argc, char** argv){
     • -b: bandera que permite indicar si se quiere ver por consola las propiedades calculadas. Es decir, si
     aparece la opci´on, entonces se muestra la salida por consola.
     */
+
+    printf("\n################################## INICIO DEL PROGRAMA ##################################\n");
 
     //-----------------------------------------------------------------getopt
     char archivo_entrada[100];
@@ -180,7 +194,7 @@ int main(int argc, char** argv){
 
     flujo = fopen(archivo_entrada, "r");
 
-    //----------------------- creacion y declaracion de threads --------------------    
+    //----------------------- declaracion de los strcut que contendran los valores de los discos --------------------    
     
     Discos = (Disk*)malloc(sizeof(Disk)*cant_discos);
 
@@ -195,10 +209,16 @@ int main(int argc, char** argv){
         Discos[i].contadorVis = 0;
     }
     
-    //Inicialización de mutex    
+
+    //----------------------- Inicialización de mutex  -------------------- 
+      
     pthread_mutex_init(&mutexLectura, NULL);
     pthread_mutex_init(&mutexEscritura, NULL);
+
    
+    //----------------------- creacion y declaracion de threads -------------------- 
+
+    printf("--------INCIO DEL USO DE THREADS--------\n");
 
     pthread_attr_t attr[cant_hebras];
     for (int i = 0; i < cant_hebras; i++)
@@ -215,16 +235,31 @@ int main(int argc, char** argv){
         contadorH++;
     }
     
+
+    
+    //------------------------ Esperar a que terminen las threads ------------------
+
     for (int j = 0; j < cant_hebras ; ++j)
     {
         pthread_join(thread[j], NULL);
     }
-    printf("--------FIN-------------\n");
+    printf("--------FIN DEL USO DE THREADS--------\n");
     
+    // cerramos el archivo .csv de lectura
+
     fclose(flujo);
-    //escritura de archivo 
+
+
+    //-------------------------- escritura de resultados --------------------------
+
+
+    //escritura de archivo de salida 
 
     escribirArchivoSalida(archivo_salida, cant_discos, Discos);
+
+    
+    // impresiones por consola para controlar los resultados
+
     if (variable_control == 1)
     {
         for (int i = 0; i < cant_discos; ++i){
@@ -241,13 +276,14 @@ int main(int argc, char** argv){
             
         }
     }
-    
 
-    //destroy mutex
+    // --------------------------- destruccion de los mutex ------------------------
+
     pthread_mutex_destroy(&mutexLectura);
     pthread_mutex_destroy(&mutexEscritura);
     free(Discos);
-    //------------------------ Esperar a que terminen las threads ------------------
+
+    printf("\n################################## FINAL DEL PROGRAMA ##################################\n");
 
     return 0;
 }

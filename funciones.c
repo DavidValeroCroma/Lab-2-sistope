@@ -12,7 +12,7 @@ void escribirArchivoSalida(char* archivo_salida, int cant_discos, Disk* Discos){
 
         long double mediaReal = Discos[i].real/Discos[i].contadorVis;
         long double mediaImg = Discos[i].img/Discos[i].contadorVis;
-        long double potencia = sqrt(Discos[i].potencia);
+        long double potencia = Discos[i].potencia;
         fprintf(a, "Disco %d:\n", i+1);
         fprintf(a, "Media Real: %Lf\n",mediaReal);
         fprintf(a, "Media imaginaria: %Lf\n",mediaImg);
