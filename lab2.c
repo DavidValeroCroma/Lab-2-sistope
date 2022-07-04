@@ -6,28 +6,10 @@
 #include <pthread.h>
 #include <sys/types.h>
 #include <sys/wait.h>
+#include "funciones.h"
 #define LECTURA 0
 #define ESCRITURA 1
 
-typedef struct visibilidad
-{
-    long double u;
-    long double v;
-    long double real;
-    long double img;
-    long double ruido;
-} vis;
-
-typedef struct Disco
-{
-    long double u;
-    long double v;
-    long double real;
-    long double img;
-    long double ruido;
-    long double potencia;
-    int contadorVis;
-} Disk;
 
 FILE * flujo;
 pthread_mutex_t mutexLectura;
@@ -37,70 +19,9 @@ int contador = 0; //cuenta visibilidades
 int contadorH = 0; //cuenta hebras
 int leido = 0;
 Disk* Discos;
-/*
-entrada:
-salida:
-Esta funcion corresponde a la escritura de los resultados en un archivo .out 
-el cual contendra estos ordenados por anillo
-*/
-void * escrituraDeArchivo(){
 
-}
 
-/*
-entrada:
-salida:
-Esta funcion corresponde a la lectura del archivo propiedades.csv, el cual contiene 
-las propiedades de las muestras tomadas
-*/
-void * lecturaDeArchivo(){
 
-}
-/*
-entrada:
-salida:
-Función que devuelve el identificador del disco al que pertence la distancia entrante 
-*/
-int hashDisk(int ancho_disco, int cant_discos, long double distancia){
-
-    int limInf = 0;
-    int limSup = ancho_disco;
-    for (int i = 0; i < cant_discos; i++)
-    {
-        if (i == 0)
-        {
-            if (distancia >= limInf && distancia < limSup  )
-            {
-                return i;
-            }            
-            else{
-                limInf = ancho_disco;
-                limSup = limSup + ancho_disco;
-            }
-        }
-        else if(i == cant_discos-1){
-            if (distancia >= limInf)
-            {
-                return i;
-            }
-            
-        }
-        else{
-            if (distancia >= limInf && distancia < limSup)
-            {
-                return i;
-            }
-            else{
-                limInf = limInf + ancho_disco;
-                limSup = limSup + ancho_disco;
-            }
-            
-        }
-        
-    }
-    return -1;
-    
-}
 /*
 entrada:
 salida:
@@ -124,7 +45,7 @@ void * thread_rutine(void *unused){
                     
                     
                     //Calculo de distancia de la visibilidad
-                    long double distancia =  sqrt((auxVis.real * auxVis.real) + (auxVis.img * auxVis.img));
+                    long double distancia =  sqrt((auxVis.u * auxVis.u) + (auxVis.v* auxVis.v));
 
                     //asignación de disco
                     int discoID = hashDisk(ancho_disco, cant_discos, distancia);
@@ -172,29 +93,6 @@ void * thread_rutine(void *unused){
 }
 
 
-    /*
-entrada: string con el nombre del archivo a crear, matriz con los resultados de los calculos, numero de discos / hijos
-salida: archivo .txt con los resultados impresos
-funcion que imprime los resultados de los procesos hijos en un archivo .txt
-*/
-void escribirArchivoSalida(char* archivo_salida){
-    FILE* a= fopen(archivo_salida,"w");
-    for (int i = 0; i < cant_discos; ++i){
-
-        long double mediaReal = Discos[i].real/Discos[i].contadorVis;
-        long double mediaImg = Discos[i].img/Discos[i].contadorVis;
-        long double potencia = sqrt(Discos[i].potencia);
-        fprintf(a, "Disco %d:\n", i+1);
-        fprintf(a, "Media Real: %Lf\n",mediaReal);
-        fprintf(a, "Media imaginaria: %Lf\n",mediaImg);
-        fprintf(a, "Potencia: %Lf\n",potencia);
-        fprintf(a, "Ruido total: %Lf\n",Discos[i].ruido);
-        
-        
-    }
-
-    fclose(a);
-}
 
 
 int main(int argc, char** argv){   
@@ -323,7 +221,7 @@ int main(int argc, char** argv){
     fclose(flujo);
     //escritura de archivo 
 
-    escribirArchivoSalida(archivo_salida);
+    escribirArchivoSalida(archivo_salida, cant_discos, Discos);
     if (variable_control == 1)
     {
         for (int i = 0; i < cant_discos; ++i){
@@ -345,6 +243,7 @@ int main(int argc, char** argv){
     //destroy mutex
     pthread_mutex_destroy(&mutexLectura);
     pthread_mutex_destroy(&mutexEscritura);
+    free(Discos);
     //------------------------ Esperar a que terminen las threads ------------------
 
     return 0;
