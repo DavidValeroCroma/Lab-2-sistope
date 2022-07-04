@@ -7,6 +7,12 @@
 #include <sys/types.h>
 #include <sys/wait.h>
 
+
+//---------------- structs ----------------------
+
+/*
+estructura que almacena los datos de las visibilidades leidas 
+*/
 typedef struct visibilidad
 {
     long double u;
@@ -16,6 +22,10 @@ typedef struct visibilidad
     long double ruido;
 } vis;
 
+
+/*
+estructura que funcionara como acumulador de los datos de los discos
+*/
 typedef struct Disco
 {
     long double u;
@@ -27,6 +37,8 @@ typedef struct Disco
     int contadorVis;
 } Disk;
 
+
+//----------------- funciones ------------------------
 
 
 void escribirArchivoSalida(char* archivo_salida, int cant_discos, Disk* Discos);

@@ -1,3 +1,11 @@
+/*
+Laboratorio 2 Sistemas Operativos 2022-1
+
+Nombres: David Valero Croma ;  Israel Gruzman Oyarzún 
+rut: 20.636.919-1  ;  20.613.921-8
+Seccion: A-1
+*/
+
 #include <stdio.h>
 #include <unistd.h>
 #include <stdlib.h>
