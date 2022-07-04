@@ -32,8 +32,7 @@ void * thread_rutine(void *unused){
     
     if (!feof(flujo)) //revisamos que no llegamos al final del archivo
     {
-        pthread_mutex_lock(&mutexLectura);
-        printf("----- Soy la hebra %d ----- \n", contadorH);
+        
         int chunkLeido = 0;
         while(leido != 1 && chunkLeido < chunk && !feof(flujo)){
 
@@ -41,8 +40,11 @@ void * thread_rutine(void *unused){
             {
                 //lectura de visibilidad
                 vis auxVis;
+                pthread_mutex_lock(&mutexLectura);
+                printf("----- Soy la hebra %d ----- \n", contadorH);
                 if(fscanf(flujo, "%Lf,%Lf,%Lf,%Lf,%Lf", &auxVis.u, &auxVis.v, &auxVis.real, &auxVis.img, &auxVis.ruido)){
                     
+                    pthread_mutex_unlock(&mutexLectura); // se da el unlock al mutex de lectura en caso de haber sido exitosa la lectura
                     
                     //Calculo de distancia de la visibilidad
                     long double distancia =  sqrt((auxVis.u * auxVis.u) + (auxVis.v* auxVis.v));
@@ -75,13 +77,14 @@ void * thread_rutine(void *unused){
                     pthread_mutex_unlock(&mutexEscritura);
                 }
                 else{
+                    pthread_mutex_unlock(&mutexLectura); // se da el unlock al mutex de lectura en caso de haber fallado la lectura evitando deathlock
                     leido = 1;
                 }
                 
             }             
             
         }    
-        pthread_mutex_unlock(&mutexLectura);
+        
         thread_rutine(NULL);   
         
     }
